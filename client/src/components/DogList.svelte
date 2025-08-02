@@ -7,15 +7,22 @@
         breed: string;
     }
 
+    interface Breed {
+        id: number;
+        name: string;
+    }
+
     export let dogs: Dog[] = [];
+    let breeds: Breed[] = [];
+    let selectedBreed: string | null = null;
     let loading = true;
     let error: string | null = null;
 
     const fetchDogs = async () => {
         loading = true;
         try {
-            const response = await fetch('/api/dogs');
-            if(response.ok) {
+            const response = await fetch(`/api/dogs${selectedBreed ? `?breed=${selectedBreed}` : ''}`);
+            if (response.ok) {
                 dogs = await response.json();
             } else {
                 error = `Failed to fetch data: ${response.status} ${response.statusText}`;
@@ -27,13 +34,42 @@
         }
     };
 
+    const fetchBreeds = async () => {
+        try {
+            const response = await fetch('/api/breeds');
+            if (response.ok) {
+                breeds = await response.json();
+            } else {
+                error = `Failed to fetch breeds: ${response.status} ${response.statusText}`;
+            }
+        } catch (err) {
+            error = `Error: ${err instanceof Error ? err.message : String(err)}`;
+        }
+    };
+
+    const handleBreedChange = (event: Event) => {
+        selectedBreed = (event.target as HTMLSelectElement).value || null;
+        fetchDogs();
+    };
+
     onMount(() => {
+        fetchBreeds();
         fetchDogs();
     });
 </script>
 
 <div>
     <h2 class="text-2xl font-medium mb-6 text-slate-100">Available Dogs</h2>
+    
+    <div class="mb-4">
+        <label for="breed-filter" class="text-slate-300 mr-2">Filter by Breed:</label>
+        <select id="breed-filter" class="bg-slate-800 text-slate-300 border border-slate-700 rounded px-3 py-2" on:change={handleBreedChange}>
+            <option value="">All Breeds</option>
+            {#each breeds as breed}
+                <option value={breed.name}>{breed.name}</option>
+            {/each}
+        </select>
+    </div>
     
     {#if loading}
         <!-- loading animation -->

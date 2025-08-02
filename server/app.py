@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Any, Optional
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 from models import init_db, db, Dog, Breed
 
 # Get the server directory path
@@ -15,11 +15,16 @@ init_db(app)
 
 @app.route('/api/dogs', methods=['GET'])
 def get_dogs() -> Response:
+    breed_filter: Optional[str] = request.args.get('breed')
+    
     query = db.session.query(
         Dog.id, 
         Dog.name, 
         Breed.name.label('breed')
     ).join(Breed, Dog.breed_id == Breed.id)
+    
+    if breed_filter:
+        query = query.filter(Breed.name == breed_filter)
     
     dogs_query = query.all()
     
@@ -65,7 +70,22 @@ def get_dog(id: int) -> tuple[Response, int] | Response:
     
     return jsonify(dog)
 
-## HERE
+@app.route('/api/breeds', methods=['GET'])
+def get_breeds():
+    # Query all breeds
+    breeds_query = db.session.query(Breed.id, Breed.name).all()
+    
+    # Convert the result to a list of dictionaries
+    breeds_list = [
+        {
+            'id': breed.id,
+            'name': breed.name
+        }
+        for breed in breeds_query
+    ]
+    
+    return jsonify(breeds_list)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5100) # Port 5100 to avoid macOS conflicts
